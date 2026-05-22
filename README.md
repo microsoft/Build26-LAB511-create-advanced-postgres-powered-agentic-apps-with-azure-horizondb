@@ -1,137 +1,127 @@
-# 🚀 Get Started
+# LAB511: Create advanced Postgres-powered agentic apps with Azure HorizonDB
 
-**This repo is where attendees go to continue their learning after your session — and your Copilot agent will help you set it up.**
+## Overview
 
-### Step 1: Open your repo
+This Microsoft Build 2026 lab walks you through building an **agentic legal research application** end to end, powered by a single **Azure HorizonDB** (Postgres) instance acting as your relational store, full-text search engine, vector database, graph database, **and** long-term memory store for the agent.
 
-Open this repo in a **Codespace** (click the green **Code** button → **Create a Codespace**) — or clone it locally. Then open **GitHub Copilot Chat**.
+You will load a real U.S. case-law dataset, light up the AI extensions inside HorizonDB, and then assemble a Microsoft Agent Framework agent that combines **BM25 keyword search**, **vector similarity (DiskANN)**, **citation-graph traversal (Apache AGE)**, **in-database entity extraction (`azure_ai`)**, and an **external weather API** to write a real legal brief, with persistent memory across turns.
 
-### Step 2: Add your content
+The lab is intentionally hands-on: every concept is paired with a runnable notebook cell, a Technical Background Notes block explaining what is happening underneath, and a short Tasks list telling you what to look at in the output.
 
-Give the agent something to work with. Drag files into the Explorer panel — session abstracts, outlines, screenshots, notes — and drop them in one of two places:
+## Architecture
 
-| Where to put it | What goes there | Who sees it |
-|---|---|---|
-| **`_remove-before-publish/`** | Internal reference materials (abstracts, outlines, screenshots, planning docs) | **Copilot only** — never published |
-| **`/docs/`, `/src/`, or repo root** | Lab instructions, demo code, sample data, getting-started guides | **Attendees** — published with the repo |
+![Architecture](./Docs/images/arch.png)
 
-> 💡 Not sure? Start by dropping your session abstract or outline into `_remove-before-publish/`. The agent will figure out what to do with it.
+## Application UI
 
-### Step 3: Ask the Agent
+![Application UI](./Docs/images/app_ui.png)
 
-Once your content is in the repo, use these three phrases with Copilot to build out your session repo:
+## What You'll Build
 
-| Phrase to use with Copilot | What it does | When to run it |
-|---|---|---|
-| **"Help me get started"** | Sets up session title, description, outcomes, and owners | After you've added your session abstract or outline to the repo |
-| **"Help me refine content"** | Organizes your session content into the repo | Each time you add or update content |
-| **"Help me finalize"** | Final review, cleanup, and publication prep | When you're ready to publish |
+- A **Microsoft Agent Framework** agent that can reason over U.S. case law stored in Azure HorizonDB.
+- **Hybrid retrieval**: BM25 full-text search (`pg_fts`) combined with vector similarity search (`pgvector` + `pg_diskann` for ANN with advanced filtering).
+- **GraphRAG** over a citation graph built with **Apache AGE**, letting the agent expand from anchor cases to surrounding precedents in a single Cypher-style traversal.
+- **In-database entity extraction** with the `azure_ai` extension, so structured fields (`holding`, `issues`, `statutes_cited`, `disposition`) are pulled directly inside Postgres instead of round-tripping opinions back to the application.
+- **External evidence ingestion** through a tool that calls the Open-Meteo weather archive API.
+- **Long-term memory** with **Mem0**, where memory embeddings are stored back in the same HorizonDB instance using `pgvector`. No separate vector database.
+- A **Gradio chat UI** that surfaces a live Tool Trace panel and the agent's growing memory store next to the conversation.
 
-> 💡 **These three phrases are just the starting point.** Copilot can do much more — try asking it to brainstorm next steps for attendees, generate code samples, or build out your repo structure. Don't be afraid to put it in plan mode and ask for what you need.
+## Key Technologies
 
----
+- **Azure HorizonDB**: managed Postgres with a rich AI extension surface (`vector`, `pg_diskann`, `pg_fts`, `azure_ai`, `age`).
+- **Microsoft Agent Framework**: open-source SDK for building tool-using agents (`OpenAIChatClient`, `@tool` decorator, `client.as_agent(...)`).
+- **Azure OpenAI**: GPT chat deployment for the agent and `text-embedding-3-small` (1536 dims) for case and memory embeddings.
+- **Apache AGE**: property-graph engine inside Postgres for the citation graph (`(:case)-[:REF]->(:case)`).
+- **Mem0**: long-term memory layer for agents, configured here against `pgvector` in HorizonDB.
+- **Gradio**: web UI for the finished agent, embedded directly in the notebook.
+- **Python**: notebooks driven by `psycopg`, `openai`, `agent-framework`, `mem0`, and `gradio`.
 
-<p align="center">
-<img src="img/banner-build-26.png" alt="Microsoft Build 2026" width="1200"/>
-</p>
+## Project Structure
 
-# [Microsoft Build 2026](https://build.microsoft.com)
+```
+├── LICENSE                       # MIT License
+├── requirements.txt              # Python package dependencies for the lab
+├── README.md                     # This file
+├── Code/
+│   ├── 1-data-setup.ipynb        # Notebook 1: load cases, build indexes, build the graph
+│   ├── 2-app-development.ipynb   # Notebook 2: build the 5-tool agent + Mem0 + Gradio UI
+│   └── 3-diagnostics.ipynb       # Diagnostics / troubleshooting helpers
+├── Dataset/
+│   └── cases.csv                 # U.S. case-law dataset used throughout the lab
+├── Docs/                         # Lab documentation and architecture images
+├── Infra/
+│   ├── deploy-hdb.bicep          # Bicep template for the HorizonDB instance
+│   ├── deploy.bicep              # Top-level Bicep template (full lab environment)
+│   └── deploy.ps1                # PowerShell wrapper for the deployment
+└── Scripts/
+    ├── show_graph.sql            # Sample SQL for inspecting the AGE citation graph
+    └── Lab Internals/            # Scripts used to build and validate the lab VM image
+```
 
-## 🔥 BRKXXX: SESSION TITLE
+## Prerequisites
 
-### Session Description
+- An **Azure subscription** with access to **Azure OpenAI** and **Azure HorizonDB**.
+- **Visual Studio Code** with the **Jupyter** and **PostgreSQL** extensions installed.
+- A **Python 3.11+** environment with the packages listed in [requirements.txt](requirements.txt):
+  - Database connectivity: `psycopg[binary]`
+  - LLM and agent framework: `openai`, `agent-framework`
+  - Long-term memory: `mem0`
+  - Notebook compatibility: `jupyter`, `ipywidgets`, `nest_asyncio`
+  - Data validation: `pydantic`
+  - HTTP: `requests`
+  - Environment management: `python-dotenv`
+  - UI: `gradio`
 
-*Add Session Description*
+> **Note for lab attendees:** the provided lab VM already has Python, every package in [requirements.txt](requirements.txt), and all VS Code extensions pre-installed. You can jump straight to the notebooks.
 
-### 🏫 Getting started in a guided session
+## Lab Sections
 
-To get started in a guided lab session:
-- <!-- step 1 -->
-- <!-- step 2 -->
-- <!-- step 3 -->
+The lab is delivered as two notebooks that build on each other.
 
-### 🏠 Getting started in your own environment
+### Notebook 1: Data Setup ([Code/1-data-setup.ipynb](Code/1-data-setup.ipynb))
 
-If you're following these steps at your own pace:
-- Clone this repository
-- Set up your development environment
-- <!-- step 3 -->
+1. **Connect to Azure HorizonDB** and enable the AI extensions (`vector`, `pg_diskann`, `pg_fts`, `age`, `azure_ai`).
+1. **Load the case-law corpus** from [Dataset/cases.csv](Dataset/cases.csv) into a clean relational schema.
+1. **Generate 1536-dim embeddings** for every opinion with Azure OpenAI and store them in a `vector(1536)` column.
+1. **Build the retrieval indexes**: a BM25 index with `pg_fts`, and a DiskANN ANN index over the opinion vectors.
+1. **Build the citation graph** with Apache AGE so each case becomes a `(:case)` node and every citation an edge.
+1. **Register Azure OpenAI** with the `azure_ai` extension so later notebooks can call `azure_ai.extract(...)` directly from SQL.
 
-### 🧠 Learning Outcomes
+By the end of Notebook 1 you have one Postgres database serving relational, vector, full-text, and graph queries with no separate stores.
 
-By the end of this session, you will be able to:
+### Notebook 2: Application Development ([Code/2-app-development.ipynb](Code/2-app-development.ipynb))
 
-- <!-- outcome 1 -->
-- <!-- outcome 2 -->
-- <!-- outcome 3 -->
+Each tool is introduced, smoke-tested by hand, and then handed to the agent so you can compare the raw output to the agent's narrative answer.
 
-### 💬 Keep Learning with Copilot
+1. **Setup and configuration** (Part 3.1).
+1. **Tool 1: `keyword_case_search`** (Part 3.2): BM25 full-text retrieval through `pg_fts`. Assemble your first single-tool agent.
+1. **Tool 2: `semantic_case_search`** (Part 3.3): pgvector similarity search with DiskANN advanced filtering, then re-assemble the agent with two tools.
+1. **Tool 3: `precedent_graph_search`** (Part 3.4): Cypher-style traversal of the AGE citation graph from BM25 + vector anchor cases. Re-assemble with three tools.
+1. **Tool 4: `case_analyst_extract`** (Part 3.5): in-database extraction with `azure_ai.extract` to pull `holding`, `issues`, `statutes_cited`, `disposition` from full opinions. Re-assemble with four tools.
+1. **Tool 5: `get_weather_evidence`** (Part 3.6): external evidence from Open-Meteo, used when a legal question turns on conditions like rainfall on a given date.
+1. **Flagship run** (Part 3.7): all five tools registered together with a beefed-up system prompt, producing a real legal brief.
+1. **Long-term memory with Mem0** (Part 3.8): wire Mem0 to pgvector in HorizonDB so the agent remembers client details and preferences across turns.
+1. **Gradio web UI** (Part 3.9): wrap the full 5-tool + Mem0 agent in a Gradio chat app with a live Tool Trace panel and a Long-term Memory panel.
 
-Try these prompts with GitHub Copilot to explore the topics from this session. Open Copilot Chat in VS Code (`Ctrl+Alt+I` on Windows/Linux, `Cmd+Shift+I` on Mac), paste a prompt, and see what you learn. Try connecting the [Microsoft Learn MCP Server](#-microsoft-learn-mcp-server) for the latest official documentation.
+### Notebook 3: Diagnostics ([Code/3-diagnostics.ipynb](Code/3-diagnostics.ipynb))
 
-Use these as a starting point — or write your own!
+Optional troubleshooting cells: verify connectivity, inspect extension state, re-check that embeddings, indexes, and the AGE graph are all in place.
 
-<!-- Prompts will be tailored to this session's content during repo setup. -->
+## Getting Started
 
-> *Prompts coming soon — check back after the session content is finalized.*
+1. Open [Code/1-data-setup.ipynb](Code/1-data-setup.ipynb) in VS Code and work through every cell top to bottom. Each cell pairs a `🧠 Technical Background Notes` block with a `📝 Tasks` checklist so you always know what to look at.
+1. Once Notebook 1 finishes successfully, open [Code/2-app-development.ipynb](Code/2-app-development.ipynb) and do the same.
+1. In Part 3.9 (the last section of Notebook 2), running the final cell launches the Gradio UI on [http://localhost:7860](http://localhost:7860). Open it in a browser and chat with your finished agent.
 
-### 💻 Technologies Used
+## Additional Resources
 
-1. <!-- technology 1 -->
-1. <!-- technology 2 -->
-1. <!-- technology 3 -->
+- [Azure HorizonDB documentation](https://aka.ms/horizondb)
+- [GraphRAG solution for Azure Database for PostgreSQL](https://aka.ms/pg-graphrag)
+- [Graph data in Azure Database for PostgreSQL](https://aka.ms/age-blog)
+- [PostgreSQL extension for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-ossdata.vscode-postgresql)
+- [Microsoft Agent Framework documentation](https://microsoft.github.io/agent-framework/)
+- [Mem0 documentation](https://docs.mem0.ai/)
 
-### 📚 Resources and Next Steps
+## License
 
-| Resource | Description |
-|:---------|:------------|
-| [https://aka.ms/build26-next-steps](https://aka.ms/build26-next-steps) | Take the next step in your learning journey after Build 2026 |
-
-
-### 🌟 Microsoft Learn MCP Server
-
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Microsoft_Docs_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=microsoft.docs.mcp&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Flearn.microsoft.com%2Fapi%2Fmcp%22%7D)
-
-The Microsoft Learn MCP Server is a remote MCP Server that enables clients like GitHub Copilot and other AI agents to bring trusted and up-to-date information directly from Microsoft's official documentation. Get started by using the one-click button above for VSCode or access the [mcp.json](.vscode/mcp.json) file included in this repo.
-
-For more information, setup instructions for other dev clients, and to post comments and questions, visit our Learn MCP Server GitHub repo at [https://github.com/MicrosoftDocs/MCP](https://github.com/MicrosoftDocs/MCP). Find other MCP Servers to connect your agent to at [https://mcp.azure.com](https://mcp.azure.com).
-
-*Note: When you use the Learn MCP Server, you agree with [Microsoft Learn](https://learn.microsoft.com/en-us/legal/termsofuse) and [Microsoft API Terms](https://learn.microsoft.com/en-us/legal/microsoft-apis/terms-of-use) of Use.*
-
-## Content Owners
-
-<!-- TODO: Add yourself as a content owner
-1. Change the src in the image tag to {your github url}.png
-2. Change INSERT NAME HERE to your name
-3. Change the github url in the final href to your url. -->
-
-<table>
-<tr>
-    <td align="center"><a href="http://github.com/yourGitHubHandle">
-        <img src="https://github.com/yourGitHubHandle.png" width="100px;" alt="INSERT NAME HERE"/><br />
-        <sub><b>INSERT NAME HERE</b></sub></a><br />
-            <a href="https://github.com/yourGitHubHandle" title="talk">📢</a>
-    </td>
-</tr></table>
-
-## Contributing
-
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit [Contributor License Agreements](https://cla.opensource.microsoft.com).
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
-
-## Trademarks
-
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
-trademarks or logos is subject to and must follow
-[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks/usage/general).
-Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
-Any use of third-party trademarks or logos are subject to those third-party's policies.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
